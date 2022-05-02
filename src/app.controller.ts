@@ -2,18 +2,18 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { ReadService } from './read.service';
 import { ReportService } from './report.service';
 
-@Controller()
+@Controller('reports')
 export class AppController {
   constructor(
     private readonly readService: ReadService,
     private readonly reportService: ReportService,
   ) {}
 
-  @Get('report')
+  @Get()
   async report() {
     const file = await this.readService.read();
 
-    const report = await this.reportService.generate(file);
+    const report = await this.reportService.mainReport(file);
 
     return report;
   }
@@ -22,7 +22,16 @@ export class AppController {
   async ranking(@Query('order') order: string) {
     const file = await this.readService.read();
 
-    const report = await this.reportService.ranking(file, order);
+    const report = await this.reportService.rankingReport(file, order);
+
+    return report;
+  }
+
+  @Get('deaths')
+  async deaths() {
+    const file = await this.readService.read();
+
+    const report = await this.reportService.deathReport(file);
 
     return report;
   }

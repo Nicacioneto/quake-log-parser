@@ -2,20 +2,20 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ReportService {
-  private readonly games;
+  private games;
 
   constructor() {
     this.games = [];
   }
 
-  async generate(content: string[]) {
-    this.games.length = 0;
+  async mainReport(content: string[]) {
+    this.games = [];
 
     let gameIndex = null;
 
     for (const line of content) {
       if (line.includes('InitGame:')) {
-        gameIndex = this.newGame();
+        gameIndex = this.newGame({ total_kills: 0, players: [], kills: {} });
       }
 
       if (line.includes('ShutdownGame')) {
@@ -29,9 +29,9 @@ export class ReportService {
     return this.games;
   }
 
-  async ranking(content: string[], order: string) {
+  async rankingReport(content: string[], order: string) {
     //Populate games
-    this.generate(content);
+    this.mainReport(content);
 
     const ranking = {};
 
@@ -66,6 +66,27 @@ export class ReportService {
     });
 
     return objSorted;
+  }
+
+  async deathReport(content: string[]) {
+    this.games = [];
+
+    let gameIndex = null;
+
+    for (const line of content) {
+      if (line.includes('InitGame:')) {
+        gameIndex = this.newGame({ total_kills: 0 });
+      }
+
+      if (line.includes('ShutdownGame')) {
+        this.endGame(gameIndex);
+      }
+
+      if (line.includes('Kill:')) {
+        this.decodeDeath(gameIndex, line);
+      }
+    }
+    return this.games;
   }
 
   private decodeKill(gameIndex: number, line: string) {
@@ -105,14 +126,33 @@ export class ReportService {
     }
   }
 
-  private newGame(): string {
+  private decodeDeath(gameIndex: number, line: string) {
+    const lineArgs = line.trim().split(' ');
+    const deathCause = lineArgs[9];
+    this.games[gameIndex][`game_${gameIndex + 1}`].total_kills++;
+
+    if (!this.games[gameIndex][`game_${gameIndex + 1}`].deathCauses) {
+      this.games[gameIndex][`game_${gameIndex + 1}`].deathCauses = {};
+    }
+
+    if (
+      !this.games[gameIndex][`game_${gameIndex + 1}`].deathCauses[deathCause]
+    ) {
+      this.games[gameIndex][`game_${gameIndex + 1}`].deathCauses[
+        deathCause
+      ] = 0;
+    }
+    this.games[gameIndex][`game_${gameIndex + 1}`].deathCauses[deathCause]++;
+  }
+
+  private newGame(params): string {
     const gameCount = this.games.length;
 
     const gameLength = gameCount + 1;
 
     const newGame = {};
 
-    newGame[`game_${gameLength}`] = { total_kills: 0, players: [], kills: {} };
+    newGame[`game_${gameLength}`] = params;
 
     this.games.push(newGame);
 
