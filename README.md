@@ -2,7 +2,14 @@
 
 Quake Log Parser API
 
+
+# Requirements
+
+ -> NodeJS version 16 
+
+ -> NPM
 # Installation
+
 
 ```bash
 $ npm install
